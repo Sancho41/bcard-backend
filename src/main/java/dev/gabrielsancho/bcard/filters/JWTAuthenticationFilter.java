@@ -14,6 +14,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -35,15 +36,12 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             User user = new ObjectMapper()
                     .readValue(req.getInputStream(), User.class);
 
-            Authentication authentication = authenticationManager.authenticate(
+            return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             user.getEmail(),
                             user.getPassword(),
                             new ArrayList<>())
             );
-
-            System.out.println(authentication.getCredentials());
-            return authentication;
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (AuthenticationException e) {
@@ -62,6 +60,11 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                 .withSubject(((User) auth.getPrincipal()).getEmail())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .sign(HMAC512(SECRET.getBytes()));
-        res.addHeader(HEADER_STRING, TOKEN_PREFIX + token);
+
+        PrintWriter out = res.getWriter();
+        res.setContentType("application/json");
+        res.setCharacterEncoding("UTF-8");
+        out.print("{\"token\": \"" + token + "\"}");
+        out.flush();
     }
 }
